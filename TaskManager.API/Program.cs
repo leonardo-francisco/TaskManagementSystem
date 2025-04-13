@@ -1,4 +1,6 @@
 using Scalar.AspNetCore;
+using TaskManager.API.Configuration;
+using TaskManager.API.Middlewares;
 using TaskManager.Application;
 using TaskManager.Infrastructure;
 
@@ -23,9 +25,10 @@ namespace TaskManager.API
                 });
             });
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-            builder.Services.AddOpenApi();
+            OpenApiCustomGenerator.AddOpenApiCustom(builder.Services);
 
             var app = builder.Build();
+            app.UseMiddleware<ExceptionMiddleware>();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

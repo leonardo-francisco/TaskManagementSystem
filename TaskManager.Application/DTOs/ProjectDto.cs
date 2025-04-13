@@ -6,5 +6,5 @@ using System.Threading.Tasks;
 
 namespace TaskManager.Application.DTOs
 {
-    public sealed record ProjectDto(string Id, string Name, string Description, string CreatedBy);
+    public sealed record ProjectDto(string? Id,string Name, string Description, string CreatedBy);
 }

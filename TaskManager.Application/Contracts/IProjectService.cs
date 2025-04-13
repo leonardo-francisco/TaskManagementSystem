@@ -12,7 +12,7 @@ namespace TaskManager.Application.Contracts
     {
         Task<IEnumerable<ProjectDto>> GetAllAsync();
         Task<ProjectDto?> GetByIdAsync(string id);
-        Task<string> CreateAsync(CreateProjectRequest request);
+        Task<string> CreateAsync(ProjectDto projectDto);
         Task DeleteAsync(string id);
     }
 }

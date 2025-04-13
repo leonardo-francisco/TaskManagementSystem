@@ -16,5 +16,6 @@ namespace TaskManager.Domain.Contracts
         Task AddAsync(Project project);
         Task UpdateAsync(Project project);
         Task DeleteAsync(string id);
+        Task DeleteTaskAsync(string projectId, string taskId);
     }
 }

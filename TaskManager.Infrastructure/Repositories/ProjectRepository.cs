@@ -45,6 +45,21 @@ namespace TaskManager.Infrastructure.Repositories
         }
 
         public async Task DeleteAsync(string id) => await _collection.DeleteOneAsync(p => p.Id.ToString() == id);
+
+        public async Task DeleteTaskAsync(string projectId, string taskId)
+        {
+            if (!ObjectId.TryParse(projectId, out ObjectId objectId))
+                return;
+
+            var filter = Builders<Project>.Filter.Eq(p => p.Id, objectId);
+            var update = Builders<Project>.Update.PullFilter(
+                p => p.Tasks,
+                task => task.TaskId == taskId
+            );
+
+            await _collection.UpdateOneAsync(filter, update);
+        }
+
         public async Task<IEnumerable<Project>> GetAllAsync() => await _collection.Find(_ => true).ToListAsync();
         public async Task<Project?> GetByIdAsync(string id) => await _collection.Find(p => p.Id.ToString() == id).FirstOrDefaultAsync();
         public async Task UpdateAsync(Project project) =>

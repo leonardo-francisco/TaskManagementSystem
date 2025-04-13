@@ -4,11 +4,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TaskManager.Application.DTOs;
 using TaskManager.Application.DTOs.Requests;
 
 namespace TaskManager.Application.Validators
 {
-    public sealed class ProjectValidator : AbstractValidator<CreateProjectRequest>
+    public sealed class ProjectValidator : AbstractValidator<ProjectDto>
     {
         public ProjectValidator()
         {

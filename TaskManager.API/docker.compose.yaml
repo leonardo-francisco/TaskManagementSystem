@@ -1,0 +1,28 @@
+﻿version: '3.8'
+
+services:
+  mongo:
+    image: mongo:7.0
+    container_name: mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  taskmanagement-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taskmanagement-api
+    restart: always
+    ports:
+      - "5000:80"
+    depends_on:
+      - mongo
+    environment:
+      - MongoSettings__ConnectionString=mongodb://mongo:27017
+      - MongoSettings__DatabaseName=TaskManagerDb
+
+volumes:
+  mongo-data:

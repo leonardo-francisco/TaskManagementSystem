@@ -22,7 +22,7 @@ namespace TaskManager.Infrastructure
             services.AddScoped<IProjectRepository, ProjectRepository>();
             services.AddScoped<ITaskRepository, TaskRepository>();
             services.AddScoped<ITaskHistoryRepository, TaskHistoryRepository>();
-            services.AddScoped<ICommentRepository, CommentRepository>();
+            
 
             return services;
         }

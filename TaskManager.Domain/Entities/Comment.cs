@@ -7,15 +7,15 @@ using System.Threading.Tasks;
 
 namespace TaskManager.Domain.Entities
 {
-    public class Comment : BaseEntity
+    public class Comment
     {
-        [BsonElement("taskId")]
-        public required string TaskId { get; set; }
-
-        [BsonElement("authorId")]
-        public required string AuthorName { get; set; }
-
         [BsonElement("content")]
-        public required string Content { get; set; }
+        public string Content { get; set; }
+
+        [BsonElement("authorName")]
+        public string AuthorName { get; set; }
+
+        [BsonElement("createdAt")]
+        public DateTime CreatedAt { get; set; }
     }
 }

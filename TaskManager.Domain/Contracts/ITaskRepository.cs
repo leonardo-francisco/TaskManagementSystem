@@ -11,6 +11,7 @@ namespace TaskManager.Domain.Contracts
     {
         Task<TaskItem?> GetByIdAsync(string id);
         Task<IEnumerable<TaskItem>> GetByProjectIdAsync(string projectId);
+        Task<List<TaskItem>> GetTasksCompletedSinceAsync(DateTime since);
         Task AddAsync(TaskItem task);
         Task UpdateAsync(TaskItem task);
         Task DeleteAsync(string id);

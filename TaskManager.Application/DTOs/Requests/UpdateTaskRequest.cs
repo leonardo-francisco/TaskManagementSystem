@@ -13,10 +13,10 @@ namespace TaskManager.Application.DTOs.Requests
         public required string Id { get; init; }
         public required string Title { get; init; }
         public string? Description { get; init; }
-        public required ETaskStatus Status { get; init; }
-        public required ETaskPriority Priority { get; init; }
+        public required string Status { get; init; }       
         public string? AssignedUserName { get; init; }
         public string UpdatedBy { get; init; }
+        public DateTime DueDate { get; set; }
         public List<CommentDto> Comments { get; init; } = [];
     }
 }

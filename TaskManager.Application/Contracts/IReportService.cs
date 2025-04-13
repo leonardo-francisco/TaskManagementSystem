@@ -3,13 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TaskManager.Domain.Entities;
+using TaskManager.Application.DTOs;
 
 namespace TaskManager.Application.Contracts
 {
-    public interface IUserService
+    public interface IReportService
     {
-        Task<IEnumerable<User>> GetAllAsync();
-        Task<User?> GetByIdAsync(string id);
+        Task<List<PerformanceReportDto>> GetPerformanceReportAsync();
     }
 }

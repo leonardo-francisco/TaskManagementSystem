@@ -30,8 +30,16 @@ namespace TaskManager.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Put(string id, [FromBody] UpdateTaskRequest request)
         {
-            if (id != request.Id) return BadRequest("ID mismatch.");
+            if (id != request.Id) return BadRequest("Incompatibilidade de ID");
             await service.UpdateAsync(request);
+            return NoContent();
+        }
+
+        [HttpDelete("{projectId}/{taskId}")]
+        public async Task<IActionResult> Delete(string projectId, string taskId)
+        {
+            await service.DeleteAsync(projectId, taskId);
+
             return NoContent();
         }
     }

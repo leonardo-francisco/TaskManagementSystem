@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace TaskManager.Application.DTOs
 {
-    public sealed record CommentDto(
-    string Content,
-    string AuthorName,
-    DateTime CreatedAt
+    public sealed record PerformanceReportDto(
+    string UserName,
+    int TasksCompleted,
+    double AverageTasksPerDay
 );
 }

@@ -1,4 +1,5 @@
-﻿using MongoDB.Bson.Serialization.Attributes;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,9 +19,11 @@ namespace TaskManager.Domain.Entities
         public string? Description { get; set; }
 
         [BsonElement("status")]
+        [BsonRepresentation(BsonType.String)]
         public ETaskStatus Status { get; set; } = ETaskStatus.ToDo;
 
         [BsonElement("priority")]
+        [BsonRepresentation(BsonType.String)]
         public ETaskPriority Priority { get; set; } = ETaskPriority.Medium;
 
         [BsonElement("dueDate")]
@@ -34,6 +37,9 @@ namespace TaskManager.Domain.Entities
 
         [BsonElement("createdBy")]
         public required string CreatedBy { get; set; }
+
+        [BsonElement("updatedBy")]
+        public string? UpdatedBy { get; set; }
 
         [BsonElement("projectId")]
         public string ProjectId { get; set; } = default!;

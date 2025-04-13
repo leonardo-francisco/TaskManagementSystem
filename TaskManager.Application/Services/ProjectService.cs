@@ -9,39 +9,51 @@ using TaskManager.Application.DTOs;
 using TaskManager.Domain.Contracts;
 using TaskManager.Domain.Entities;
 using MongoDB.Bson;
+using AutoMapper;
+using TaskManager.Domain.Enums;
+using TaskManager.Application.Exception;
 
 namespace TaskManager.Application.Services
 {
-    public sealed class ProjectService(IProjectRepository repository) : IProjectService
+    public sealed class ProjectService(IProjectRepository repository,
+                                       ITaskRepository taskRepository,
+                                       IMapper mapper) : IProjectService
     {
-        public async Task<string> CreateAsync(CreateProjectRequest request)
+        public async Task<string> CreateAsync(ProjectDto projectDto)
         {
-            var project = new Project
-            {
-                Id = ObjectId.GenerateNewId(),
-                Name = request.Name,
-                Description = request.Description,
-                CreatedBy = request.CreatedBy,
-                CreatedAt = DateTime.UtcNow
-            };
-
+            var project = mapper.Map<Project>(projectDto);           
             await repository.AddAsync(project);
             return project.Id.ToString()!;
         }
 
         public async Task DeleteAsync(string id)
         {
+            var project = await repository.GetByIdAsync(id);
+
+            if (project is null)
+                throw new CustomException("Projeto não encontrado.");
+
+            var tasks = await taskRepository.GetByProjectIdAsync(id);
+
+            var hasPendingTasks = tasks.Any(t => t.Status == ETaskStatus.ToDo || t.Status == ETaskStatus.InProgress);
+            
+            if (hasPendingTasks)
+                throw new CustomException("O projeto possui tarefas pendentes. Conclua ou remova as tarefas antes de excluir o projeto.");
+
             await repository.DeleteAsync(id);
         }
 
-        public async Task<IEnumerable<ProjectDto>> GetAllAsync() =>
-            (await repository.GetAllAsync())
-            .Select(p => new ProjectDto(p.Id.ToString()!, p.Name, p.Description ?? "", p.CreatedBy));
+        public async Task<IEnumerable<ProjectDto>> GetAllAsync()
+        {
+            var projects = await repository.GetAllAsync();
+            return mapper.Map<IEnumerable<ProjectDto>>(projects);
+        }
+     
 
         public async Task<ProjectDto?> GetByIdAsync(string id)
         {
             var project = await repository.GetByIdAsync(id);
-            return project is null ? null : new ProjectDto(project.Id.ToString()!, project.Name, project.Description ?? "", project.CreatedBy);
+            return mapper.Map<ProjectDto>(project);
         }
     }
 }

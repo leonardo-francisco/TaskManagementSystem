@@ -9,49 +9,43 @@ using TaskManager.Application.DTOs;
 using TaskManager.Domain.Contracts;
 using TaskManager.Domain.Entities;
 using MongoDB.Bson;
+using AutoMapper;
+using TaskManager.Domain.Enums;
+using TaskManager.Application.Exception;
 
 namespace TaskManager.Application.Services
 {
     public sealed class TaskService(ITaskRepository repository, 
                                     IProjectRepository projectRepository,
-                                    ITaskHistoryRepository taskHistoryRepository) : ITaskService
+                                    ITaskHistoryRepository taskHistoryRepository,
+                                    IMapper mapper) : ITaskService
     {
         public async Task<string> CreateAsync(CreateTaskRequest request)
         {
-            var createdBy = request.CreatedBy ?? "Desconhecido";
-            var assignedUser = request.AssignedUserName ?? "Anônimo";
             var now = DateTime.UtcNow;
+            var initialComment = new Comment();
 
             var tasks = await repository.GetByProjectIdAsync(request.ProjectId);
 
             if (tasks.Count() >= 20)
-                return "Erro: O limite de 20 tarefas para este projeto foi atingido.";
+                throw new CustomException("Erro: O limite de 20 tarefas para este projeto foi atingido.");
 
-            var initialComment = new Comment
-            {
-                Id = ObjectId.GenerateNewId(),
-                TaskId = "",
-                AuthorName = createdBy,
-                Content = $"Tarefa criada por {createdBy} em {now:dd/MM/yyyy HH:mm}",
-                CreatedAt = now
-            };
+            var task = mapper.Map<TaskItem>(request);
 
-            var task = new TaskItem
+            if (task.Comments == null || task.Comments.Count() == 0)
             {
-                Id = ObjectId.GenerateNewId(),
-                Title = request.Title,
-                Description = request.Description,
-                Priority = request.Priority,
-                ProjectId = request.ProjectId,
-                AssignedUserName = assignedUser,
-                CreatedBy = createdBy,
-                Comments = new List<Comment> { initialComment },
-                Status = Domain.Enums.ETaskStatus.ToDo,
-                CreatedAt = DateTime.UtcNow
-            };
+                initialComment = new Comment
+                {
+                    AuthorName = "Sistema",
+                    Content = $"Tarefa criada por {task.CreatedBy} em {now:dd/MM/yyyy HH:mm}",
+                    CreatedAt = now
+                };
+                task.Comments = new List<Comment> { initialComment };
+            }            
+            
+            task.Status = Domain.Enums.ETaskStatus.ToDo;
 
             await repository.AddAsync(task);
-
             await AddTaskAndCollaboratorToProjectAsync(task);
 
             return task.Id.ToString()!;
@@ -64,8 +58,8 @@ namespace TaskManager.Application.Services
                 t.Id.ToString()!,
                 t.Title,
                 t.Description ?? "",
-                t.Status,
-                t.Priority,
+                t.Status.ToString(),
+                t.Priority.ToString(),
                 t.ProjectId,
                 t.AssignedUserName ?? "Anônimo",
                 t.CreatedBy,
@@ -82,8 +76,8 @@ namespace TaskManager.Application.Services
                 task.Id.ToString()!,
                 task.Title,
                 task.Description ?? "",
-                task.Status,
-                task.Priority,
+                task.Status.ToString(),
+                task.Priority.ToString(),
                 task.ProjectId,
                 task.AssignedUserName ?? "Anônimo",
                 task.CreatedBy,
@@ -99,8 +93,10 @@ namespace TaskManager.Application.Services
           
             task.Title = request.Title;
             task.Description = request.Description;
-            task.Status = request.Status;
+            task.Status = Enum.Parse<ETaskStatus>(request.Status);
             task.AssignedUserName = request.AssignedUserName ?? task.AssignedUserName;
+            task.DueDate = request.DueDate;
+            task.UpdatedBy = request.UpdatedBy;
             task.UpdatedAt = DateTime.UtcNow;
 
             if (request.Comments is not null && request.Comments.Any())
@@ -108,9 +104,7 @@ namespace TaskManager.Application.Services
                 foreach (var comment in request.Comments)
                 {
                     task.Comments.Add(new Comment
-                    {
-                        Id = ObjectId.GenerateNewId(),
-                        TaskId = task.Id.ToString(),
+                    {                      
                         AuthorName = comment.AuthorName,
                         Content = comment.Content,                       
                         CreatedAt = comment.CreatedAt
@@ -120,11 +114,17 @@ namespace TaskManager.Application.Services
 
             await repository.UpdateAsync(task);
             
-            var histories = GetTaskHistories(task, request);           
+            var histories = GetTaskHistories(task, request);             
             foreach (var history in histories)
             {
                 await taskHistoryRepository.AddHistoryAsync(history);
             }
+        }
+
+        public async Task DeleteAsync(string projectId, string taskId)
+        {
+            await repository.DeleteAsync(taskId);
+            await projectRepository.DeleteTaskAsync(projectId, taskId);
         }
 
         #region Private Methods
@@ -147,25 +147,25 @@ namespace TaskManager.Application.Services
             // Verificar cada campo e registrar alterações no histórico
             if (task.Title != request.Title)
             {
-                histories.Add(CreateTaskHistory("Title", task.Title, request.Title, request.UpdatedBy));
+                histories.Add(CreateTaskHistory("Title", task.Title, request.Title, request.UpdatedBy, task.Id.ToString()));
                 task.Title = request.Title;
             }
 
             if (task.Description != request.Description)
             {
-                histories.Add(CreateTaskHistory("Description", task.Description, request.Description, request.UpdatedBy));
+                histories.Add(CreateTaskHistory("Description", task.Description, request.Description, request.UpdatedBy, task.Id.ToString()));
                 task.Description = request.Description;
             }
 
-            if (task.Status != request.Status)
+            if (task.Status != Enum.Parse<ETaskStatus>(request.Status))
             {
-                histories.Add(CreateTaskHistory("Status", task.Status.ToString(), request.Status.ToString(), request.UpdatedBy));
-                task.Status = request.Status;
+                histories.Add(CreateTaskHistory("Status", task.Status.ToString(), request.Status.ToString(), request.UpdatedBy, task.Id.ToString()));
+                task.Status = Enum.Parse<ETaskStatus>(request.Status);
             }
 
             if (task.AssignedUserName != request.AssignedUserName)
             {
-                histories.Add(CreateTaskHistory("AssignedUserName", task.AssignedUserName, request.AssignedUserName, request.UpdatedBy));
+                histories.Add(CreateTaskHistory("AssignedUserName", task.AssignedUserName, request.AssignedUserName, request.UpdatedBy, task.Id.ToString()));
                 task.AssignedUserName = request.AssignedUserName ?? task.AssignedUserName;
             }
 
@@ -175,7 +175,8 @@ namespace TaskManager.Application.Services
                 histories.Add(CreateTaskHistory("Comments",
                     string.Join(", ", task.Comments.Select(c => c.Content)),
                     string.Join(", ", request.Comments.Select(c => c.Content)),
-                    request.UpdatedBy));
+                    request.UpdatedBy,
+                    task.Id.ToString()));
 
                 // Atualizar os comentários na tarefa
                 task.Comments = ConvertToComments(request.Comments);
@@ -187,20 +188,19 @@ namespace TaskManager.Application.Services
         private List<Comment> ConvertToComments(List<CommentDto> commentDtos)
         {
             return commentDtos?.Select(dto => new Comment
-            {
-                Id = ObjectId.GenerateNewId(), 
-                TaskId = dto.TaskId,
+            {               
                 AuthorName = dto.AuthorName,
                 Content = dto.Content,
                 CreatedAt = dto.CreatedAt
             }).ToList();
         }
 
-        private TaskHistory CreateTaskHistory(string fieldName, string oldValue, string newValue, string modifiedBy)
+        private TaskHistory CreateTaskHistory(string fieldName, string oldValue, string newValue, string modifiedBy, string taskId)
         {
             return new TaskHistory
             {
                 Id = ObjectId.GenerateNewId(),
+                TaskId = taskId,
                 FieldName = fieldName,
                 OldValue = oldValue,
                 NewValue = newValue,
@@ -208,6 +208,8 @@ namespace TaskManager.Application.Services
                 ModifiedAt = DateTime.UtcNow
             };
         }
+
+       
         #endregion
     }
 }

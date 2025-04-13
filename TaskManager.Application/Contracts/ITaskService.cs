@@ -14,5 +14,6 @@ namespace TaskManager.Application.Contracts
         Task<TaskDto?> GetByIdAsync(string id);
         Task<string> CreateAsync(CreateTaskRequest request);
         Task UpdateAsync(UpdateTaskRequest request);
+        Task DeleteAsync(string projectId, string taskId);
     }
 }
