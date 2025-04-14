@@ -88,9 +88,14 @@ namespace TaskManager.Application.Services
         public async Task UpdateAsync(UpdateTaskRequest request)
         {
             var task = await repository.GetByIdAsync(request.Id);
+            var histories = GetTaskHistories(task, request);
 
             if (task is null) return;
-          
+
+            if (Enum.TryParse<ETaskPriority>(request.Priority, out var requestedPriority) &&
+                   requestedPriority != task.Priority)
+                throw new CustomException("A prioridade da tarefa não pode ser alterada.");
+
             task.Title = request.Title;
             task.Description = request.Description;
             task.Status = Enum.Parse<ETaskStatus>(request.Status);
@@ -114,7 +119,7 @@ namespace TaskManager.Application.Services
 
             await repository.UpdateAsync(task);
             
-            var histories = GetTaskHistories(task, request);             
+                        
             foreach (var history in histories)
             {
                 await taskHistoryRepository.AddHistoryAsync(history);
